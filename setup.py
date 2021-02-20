@@ -62,8 +62,7 @@ from pathlib import Path
 from sys import argv, platform
 
 from setuptools import setup
-from torch.utils.cpp_extension import (BuildExtension, CppExtension,
-                                       CUDAExtension)
+from torch.utils.cpp_extension import BuildExtension, CppExtension, CUDAExtension
 
 if platform == "win32":
     raise ImportError("Windows is currently not supported.")
@@ -147,7 +146,14 @@ extra_link_args = []
 include_dirs = []
 libraries = []
 CC_FLAGS = []
-NVCC_FLAGS = ["-gencode=arch=compute_37,code=sm_37", "-gencode=arch=compute_50,code=sm_50", "-gencode=arch=compute_60,code=sm_60", , "-gencode=arch=compute_61,code=sm_61", , "-gencode=arch=compute_70,code=sm_70", "-gencode=arch=compute_75,code=sm_75"]
+NVCC_FLAGS = [
+    "-gencode=arch=compute_37,code=sm_37",
+    "-gencode=arch=compute_50,code=sm_50",
+    "-gencode=arch=compute_60,code=sm_60",
+    "-gencode=arch=compute_61,code=sm_61",
+    "-gencode=arch=compute_70,code=sm_70",
+    "-gencode=arch=compute_75,code=sm_75",
+]
 
 if CPU_ONLY:
     print("--------------------------------")

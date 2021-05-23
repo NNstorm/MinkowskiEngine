@@ -199,6 +199,8 @@ class SparseTensor(Tensor):
             assert isinstance(coordinates, torch.Tensor)
         if coordinate_map_key is not None:
             assert isinstance(coordinate_map_key, CoordinateMapKey)
+            assert coordinate_manager is not None, "Must provide coordinate_manager if coordinate_map_key is provided"
+            assert coordinates is None, "Must not provide coordinates if coordinate_map_key is provided"
         if coordinate_manager is not None:
             assert isinstance(coordinate_manager, CoordinateManager)
         if coordinates is None and (
@@ -280,6 +282,10 @@ class SparseTensor(Tensor):
         self.coordinate_map_key = coordinate_map_key
         self._batch_rows = None
 
+    @property
+    def coordinate_key(self):
+        return self.coordinate_map_key
+
     def initialize_coordinates(self, coordinates, features, coordinate_map_key):
         if not isinstance(coordinates, (torch.IntTensor, torch.cuda.IntTensor)):
             warnings.warn(
@@ -288,14 +294,23 @@ class SparseTensor(Tensor):
                 + "coords into an torch.IntTensor"
             )
             coordinates = torch.floor(coordinates).int()
-
         (
             coordinate_map_key,
-            (unique_index, self.inverse_mapping),
+            (unique_index, inverse_mapping),
         ) = self._manager.insert_and_map(coordinates, *coordinate_map_key.get_key())
         self.unique_index = unique_index.long()
         coordinates = coordinates[self.unique_index]
 
+        if len(inverse_mapping) == 0:
+            # When the input has the same shape as the output
+            self.inverse_mapping = torch.arange(
+                len(features),
+                dtype=inverse_mapping.dtype,
+                device=inverse_mapping.device,
+            )
+            return coordinates, features, coordinate_map_key
+
+        self.inverse_mapping = inverse_mapping
         if self.quantization_mode == SparseTensorQuantizationMode.UNWEIGHTED_SUM:
             spmm = MinkowskiSPMMFunction()
             N = len(features)
@@ -477,7 +492,7 @@ class SparseTensor(Tensor):
                 shape = torch.Size([shape[0], self._F.size(1), *[s for s in shape[2:]]])
 
         # Use int tensor for all operations
-        tensor_stride = torch.IntTensor(self.tensor_stride)
+        tensor_stride = torch.IntTensor(self.tensor_stride).to(self.device)
 
         # New coordinates
         batch_indices = self.C[:, 0]
@@ -486,7 +501,11 @@ class SparseTensor(Tensor):
         if min_coordinate is None:
             min_coordinate, _ = self.C.min(0, keepdim=True)
             min_coordinate = min_coordinate[:, 1:]
-            coords = self.C[:, 1:] - min_coordinate
+            if not torch.all(min_coordinate >= 0):
+                raise ValueError(
+                    f"Coordinate has a negative value: {min_coordinate}. Please provide min_coordinate argument"
+                )
+            coords = self.C[:, 1:]
         elif isinstance(min_coordinate, int) and min_coordinate == 0:
             coords = self.C[:, 1:]
         else:
@@ -508,7 +527,7 @@ class SparseTensor(Tensor):
         nchannels = self.F.size(1)
         if shape is None:
             size = coords.max(0)[0] + 1
-            shape = torch.Size([batch_indices.max() + 1, nchannels, *size.numpy()])
+            shape = torch.Size([batch_indices.max() + 1, nchannels, *size.cpu().numpy()])
 
         dense_F = torch.zeros(shape, dtype=self.F.dtype, device=self.F.device)
 
@@ -522,6 +541,24 @@ class SparseTensor(Tensor):
 
         tensor_stride = torch.IntTensor(self.tensor_stride)
         return dense_F, min_coordinate, tensor_stride
+
+    def interpolate(self, X):
+        from MinkowskiTensorField import TensorField
+
+        assert isinstance(X, TensorField)
+        if self.coordinate_map_key in X._splat:
+            tensor_map, field_map, weights, size = X._splat[self.coordinate_map_key]
+            size = torch.Size([size[1], size[0]])  # transpose
+            features = MinkowskiSPMMFunction().apply(
+                field_map, tensor_map, weights, size, self._F
+            )
+        else:
+            features = self.features_at_coordinates(X.C)
+        return TensorField(
+            features=features,
+            coordinate_field_map_key=X.coordinate_field_map_key,
+            coordinate_manager=X.coordinate_manager,
+        )
 
     def slice(self, X):
         r"""
@@ -565,12 +602,13 @@ class SparseTensor(Tensor):
                 quantization_mode=X.quantization_mode,
             )
         elif isinstance(X, SparseTensor):
+            inv_map = X.inverse_mapping
             assert (
                 X.coordinate_map_key == self.coordinate_map_key
             ), "Slice can only be applied on the same coordinates (coordinate_map_key)"
             return TensorField(
-                self.F[X.inverse_mapping],
-                coordinates=self.C[X.inverse_mapping],
+                self.F[inv_map],
+                coordinates=self.C[inv_map],
                 coordinate_manager=self.coordinate_manager,
                 quantization_mode=self.quantization_mode,
             )
@@ -611,9 +649,8 @@ class SparseTensor(Tensor):
 
         from MinkowskiTensorField import TensorField
 
-        features = torch.cat(
-            (self.F[X.inverse_mapping(self.coordinate_map_key)], X.F), dim=1
-        )
+        inv_map = X.inverse_mapping(self.coordinate_map_key)
+        features = torch.cat((self.F[inv_map], X.F), dim=1)
         if isinstance(X, TensorField):
             return TensorField(
                 features,
@@ -627,7 +664,7 @@ class SparseTensor(Tensor):
             ), "Slice can only be applied on the same coordinates (coordinate_map_key)"
             return TensorField(
                 features,
-                coordinates=self.C[X.inverse_mapping(self.coordinate_map_key)],
+                coordinates=self.C[inv_map],
                 coordinate_manager=self.coordinate_manager,
                 quantization_mode=self.quantization_mode,
             )

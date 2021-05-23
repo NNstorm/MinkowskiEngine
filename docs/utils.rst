@@ -38,6 +38,12 @@ to_sparse
 .. autofunction:: MinkowskiEngine.to_sparse
 
 
+to_sparse_all
+-------------
+
+.. autofunction:: MinkowskiEngine.to_sparse_all
+
+
 SparseCollation
 ---------------
 
@@ -60,5 +66,53 @@ MinkowskiToDenseTensor
 -----------------------
 
 .. autoclass:: MinkowskiEngine.MinkowskiToDenseTensor
+
+    .. automethod:: __init__
+
+
+MinkowskiToFeature
+------------------
+
+.. autoclass:: MinkowskiEngine.MinkowskiToFeature
+
+    .. automethod:: __init__
+
+
+MinkowskiStackCat
+-----------------
+
+.. autoclass:: MinkowskiEngine.MinkowskiStackCat
+    :members: forward
+    :undoc-members:
+
+    .. automethod:: __init__
+
+
+MinkowskiStackSum
+-----------------
+
+.. autoclass:: MinkowskiEngine.MinkowskiStackSum
+    :members: forward
+    :undoc-members:
+
+    .. automethod:: __init__
+
+
+MinkowskiStackMean
+------------------
+
+.. autoclass:: MinkowskiEngine.MinkowskiStackMean
+    :members: forward
+    :undoc-members:
+
+    .. automethod:: __init__
+
+
+MinkowskiStackVar
+-----------------
+
+.. autoclass:: MinkowskiEngine.MinkowskiStackVar
+    :members: forward
+    :undoc-members:
 
     .. automethod:: __init__

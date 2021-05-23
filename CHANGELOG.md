@@ -1,5 +1,25 @@
 # Change Log
 
+## [0.5.4]
+
+- Fix `TensorField.sparse()` for no duplicate coordinates
+- Skip unnecessary spmm if `SparseTensor.initialize_coordinates()` has no duplicate coordinates
+- Model summary utility function added
+- TensorField.splat function for splat features to a sparse tensor
+- SparseTensor.interpolate function for extracting interpolated features
+- `coordinate_key` property function for `SparseTensor` and `TensorField`
+- Fix .dense() for GPU tensors. (PR #319)
+
+## [0.5.3]
+
+- Updated README for pytorch 1.8.1 support
+- Use custom `gpu_storage` instead of thrust vector for faster constructors
+- pytorch installation instruction updates
+- fix transpose kernel map with `kernel_size == stride_size`
+- Update reconstruction and vae examples for v0.5 API
+- `stack_unet.py` example, API updates
+- `MinkowskiToFeature` layer
+
 ## [0.5.2]
 
 - spmm average cuda function
@@ -9,6 +29,17 @@
 - fix coordinate manager kernel map python function
 - direct max pool
     - SparseTensorQuantizationMode.MAX_POOL
+- TensorField global max pool
+    - origin field
+    - origin field map
+    - MinkowskiGlobalMaxPool CPU/GPU updates for a field input
+- SparseTensor.dense() raises a value error when a coordinate is negative rather than subtracting the minimum coordinate from a sparse tensor. (issue #316)
+- Added `to_sparse()` that removes zeros. (issue #317)
+    - Previous `to_sparse()` was renamed to `to_sparse_all()`
+    - `MinkowskiToSparseTensor` takes an optional `remove_zeros` boolean argument.
+- Fix global max pool with batch size 1
+- Use separate memory chunks for in, out map, and kernel indices for `gpu_kernel_map` for gpu memory misaligned error
+
 
 ## [0.5.1]
 

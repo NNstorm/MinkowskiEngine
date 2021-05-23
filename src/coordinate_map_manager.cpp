@@ -391,9 +391,11 @@ CoordinateMapManager<coordinate_type, coordinate_field_type, TemplatedAllocator,
                                      TemplatedAllocator, CoordinateMapType>()(
           map_key, coordinate, *this);
 
+  LOG_DEBUG("map_inverse_map initialized");
   py::object py_key = py::cast(new CoordinateMapKey(coordinate_size, map_key));
+  LOG_DEBUG("py key initialized");
 
-  return std::make_pair(py_key, std::move(map_inverse_map));
+  return std::make_pair(py_key, map_inverse_map);
 }
 
 // stride
@@ -500,6 +502,49 @@ CoordinateMapManager<coordinate_type, coordinate_field_type, TemplatedAllocator,
     }
   }
 
+  LOG_DEBUG("return origin()");
+  // (key, new map generated flag)
+  return std::make_pair(origin_map_key, !exists_origin_map);
+}
+
+template <typename coordinate_type, typename coordinate_field_type,
+          template <typename C> class TemplatedAllocator,
+          template <typename T, template <typename Q> class A>
+          class CoordinateMapType>
+std::pair<coordinate_map_key_type, bool>
+CoordinateMapManager<coordinate_type, coordinate_field_type, TemplatedAllocator,
+                     CoordinateMapType>::origin_field() {
+  ASSERT(m_field_coordinates.size() > 0, "No coordinate map found");
+  // check if the key exists.
+  field_map_type const &random_map = m_field_coordinates.begin()->second;
+  stride_type origin_tensor_stride(random_map.coordinate_size() - 1);
+  std::for_each(origin_tensor_stride.begin(), origin_tensor_stride.end(),
+                [](auto &i) { i = 0; });
+  LOG_DEBUG("origin tensor stride:", origin_tensor_stride);
+
+  coordinate_map_key_type origin_map_key(origin_tensor_stride, "");
+  bool const exists_origin_map = exists(origin_map_key);
+
+  if (!exists_origin_map) {
+    LOG_DEBUG("origin coordinate map not found");
+    field_map_type const *p_min_coordinate_map{nullptr};
+    size_type min_size = std::numeric_limits<size_type>::max();
+    for (auto map_it = m_field_coordinates.begin();
+         map_it != m_field_coordinates.end(); ++map_it) {
+      if (min_size > map_it->second.size()) {
+        p_min_coordinate_map = &(map_it->second);
+      }
+    }
+
+    if (p_min_coordinate_map != nullptr) {
+      map_type origin_map = p_min_coordinate_map->origin();
+      LOG_DEBUG("origin map with size:", origin_map.size(), " inserted");
+      insert(origin_map_key, origin_map);
+    } else {
+      ASSERT(false, "Invalid origin map");
+    }
+  }
+
   // (key, new map generated flag)
   return std::make_pair(origin_map_key, !exists_origin_map);
 }
@@ -554,8 +599,8 @@ struct stride_map_functor<coordinate_type, std::allocator, CoordinateMapCPU,
   cpu_kernel_map
   operator()(CoordinateMapCPU<coordinate_type, std::allocator> const &in_map,
              CoordinateMapCPU<coordinate_type, std::allocator> const &out_map,
-             default_types::stride_type const &stride) {
-    return in_map.stride_map(out_map, stride);
+             default_types::stride_type const &out_tensor_stride) {
+    return in_map.stride_map(out_map, out_tensor_stride);
   }
 };
 
@@ -735,7 +780,7 @@ CoordinateMapManager<
           auto const stride_map =
               detail::stride_map_functor<coordinate_type, TemplatedAllocator,
                                          CoordinateMapType, kernel_map_type>()(
-                  out_map, in_map, kernel_stride);
+                  out_map, in_map, in_map.get_tensor_stride());
 
           // TODO Replace the kernel_map values to shared pointers.
           m_kernel_maps[kernel_map_key] =
@@ -820,7 +865,7 @@ struct origin_map_functor<coordinate_type, std::allocator, CoordinateMapCPU,
          ++out_row_index) {
       auto const &in_map = origin_map.first[out_row_index];
       int32_t const curr_size = in_map.size();
-      ASSERT(curr_size > 0, "invalid kernel map");
+      ASSERT(curr_size > 0, "invalid kernel map for index", out_row_index);
       auto const curr_batch_index = p_batch_indices[out_row_index];
 
       ASSERT(curr_batch_index <= max_batch_index, "invalid batch index");
@@ -867,6 +912,31 @@ CoordinateMapManager<coordinate_type, coordinate_field_type, TemplatedAllocator,
   return m_kernel_maps[kernel_map_key];
 }
 
+template <typename coordinate_type, typename coordinate_field_type,
+          template <typename C> class TemplatedAllocator,
+          template <typename T, template <typename Q> class A>
+          class CoordinateMapType>
+typename CoordinateMapManager<coordinate_type, coordinate_field_type,
+                              TemplatedAllocator,
+                              CoordinateMapType>::kernel_map_type const &
+CoordinateMapManager<coordinate_type, coordinate_field_type, TemplatedAllocator,
+                     CoordinateMapType>::origin_field_map(CoordinateMapKey const
+                                                              *p_in_map_key) {
+  ASSERT(exists_field(p_in_map_key), ERROR_MAP_NOT_FOUND);
+  kernel_map_key_type const kernel_map_key =
+      origin_map_key(p_in_map_key->get_key());
+  coordinate_map_key_type const origin_key = std::get<1>(kernel_map_key);
+
+  if (m_field_kernel_maps.find(kernel_map_key) == m_field_kernel_maps.end()) {
+    auto const key = origin_field().first;
+    auto const &origin_coordinate_map = m_coordinate_maps.find(key)->second;
+    auto origin_map = m_field_coordinates.find(p_in_map_key->get_key())
+                          ->second.origin_map(origin_coordinate_map);
+    m_field_kernel_maps[kernel_map_key] = std::move(origin_map);
+  }
+
+  return m_field_kernel_maps[kernel_map_key];
+}
 namespace detail {
 
 template <typename coordinate_type>
@@ -951,7 +1021,7 @@ CoordinateMapManager<coordinate_type, coordinate_field_type, TemplatedAllocator,
     auto const stride_map =
         detail::stride_map_functor<coordinate_type, TemplatedAllocator,
                                    CoordinateMapType, kernel_map_type>()(
-            in_map, strided_map, kernel_stride);
+            in_map, strided_map, strided_map.get_tensor_stride());
 
     m_kernel_maps[kernel_map_key] = std::move(stride_map);
   }
@@ -974,6 +1044,24 @@ CoordinateMapManager<coordinate_type, coordinate_field_type, TemplatedAllocator,
   kernel_map_type const &kernel_map = origin_map(p_in_map_key);
 
   coordinate_map_key_type const origin_key = origin().first;
+  map_type const &origin_map = m_coordinate_maps.find(origin_key)->second;
+
+  return detail::origin_map_functor<coordinate_type, TemplatedAllocator,
+                                    CoordinateMapType, kernel_map_type>()(
+      origin_map, kernel_map);
+}
+
+template <typename coordinate_type, typename coordinate_field_type,
+          template <typename C> class TemplatedAllocator,
+          template <typename T, template <typename Q> class A>
+          class CoordinateMapType>
+std::pair<at::Tensor, std::vector<at::Tensor>>
+CoordinateMapManager<coordinate_type, coordinate_field_type, TemplatedAllocator,
+                     CoordinateMapType>::
+    origin_field_map_th(CoordinateMapKey const *p_in_map_key) {
+  kernel_map_type const &kernel_map = origin_field_map(p_in_map_key);
+
+  coordinate_map_key_type const origin_key = origin_field().first;
   map_type const &origin_map = m_coordinate_maps.find(origin_key)->second;
 
   return detail::origin_map_functor<coordinate_type, TemplatedAllocator,
@@ -1242,6 +1330,7 @@ CoordinateMapManager<coordinate_type, coordinate_field_type, TemplatedAllocator,
   auto const &map = it->second;
   auto const nrows = map.size();
   auto const ncols = map.coordinate_size();
+  LOG_DEBUG("coordinate map nrows:", nrows, "ncols:", ncols);
 
   // CPU torch.IntTensor
   auto options = torch::TensorOptions().dtype(torch::kInt).requires_grad(false);
@@ -1255,8 +1344,10 @@ CoordinateMapManager<coordinate_type, coordinate_field_type, TemplatedAllocator,
   }
   at::Tensor coordinates = torch::empty({(long)nrows, (long)ncols}, options);
 
+  LOG_DEBUG("Initialized coordinates");
   // copy to the out coords
   map.copy_coordinates(coordinates.template data_ptr<coordinate_type>());
+  LOG_DEBUG("Copied coordinates");
   return coordinates;
 }
 

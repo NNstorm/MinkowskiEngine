@@ -25,6 +25,7 @@ import os
 import argparse
 import numpy as np
 from urllib.request import urlretrieve
+
 try:
     import open3d as o3d
 except ImportError:
@@ -33,14 +34,14 @@ except ImportError:
 import torch
 import MinkowskiEngine as ME
 from examples.minkunet import MinkUNet34C
-from examples.common import Timer
 
 # Check if the weights and file exist and download
 if not os.path.isfile('weights.pth'):
-    print('Downloading weights and a room ply file...')
-    urlretrieve("http://cvgl.stanford.edu/data2/minkowskiengine/weights.pth",
-                'weights.pth')
-    urlretrieve("http://cvgl.stanford.edu/data2/minkowskiengine/1.ply", '1.ply')
+    print('Downloading weights...')
+    urlretrieve("https://bit.ly/2O4dZrz", "weights.pth")
+if not os.path.isfile("1.ply"):
+    print('Downloading an example pointcloud...')
+    urlretrieve("https://bit.ly/3c2iLhg", "1.ply")
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--file_name', type=str, default='1.ply')
@@ -106,6 +107,20 @@ def load_file(file_name):
     return coords, colors, pcd
 
 
+def normalize_color(color: torch.Tensor, is_color_in_range_0_255: bool = False) -> torch.Tensor:
+    r"""
+    Convert color in range [0, 1] to [-0.5, 0.5]. If the color is in range [0,
+    255], use the argument `is_color_in_range_0_255=True`.
+
+    `color` (torch.Tensor): Nx3 color feature matrix
+    `is_color_in_range_0_255` (bool): If the color is in range [0, 255] not [0, 1], normalize the color to [0, 1].
+    """
+    if is_color_in_range_0_255:
+        color /= 255
+    color -= 0.5
+    return color.float()
+
+
 if __name__ == '__main__':
     config = parser.parse_args()
     device = torch.device('cuda' if (
@@ -123,7 +138,7 @@ if __name__ == '__main__':
         voxel_size = 0.02
         # Feed-forward pass and get the prediction
         in_field = ME.TensorField(
-            features=torch.from_numpy(colors).float(),
+            features=normalize_color(torch.from_numpy(colors)),
             coordinates=ME.utils.batched_coordinates([coords / voxel_size], dtype=torch.float32),
             quantization_mode=ME.SparseTensorQuantizationMode.UNWEIGHTED_AVERAGE,
             minkowski_algorithm=ME.MinkowskiAlgorithm.SPEED_OPTIMIZED,

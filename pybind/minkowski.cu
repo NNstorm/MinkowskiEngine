@@ -34,6 +34,8 @@
 #include <pybind11/stl.h>
 
 PYBIND11_MODULE(TORCH_EXTENSION_NAME, m) {
+  py::register_exception<thrust::system_error>(m, "ThrustException",
+                                               PyExc_RuntimeError);
   // Constant function
   m.def("is_cuda_available", &is_cuda_available);
   m.def("cuda_version", &cuda_version);

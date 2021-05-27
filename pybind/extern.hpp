@@ -584,6 +584,7 @@ void instantiate_cpu_func(py::module &m, const std::string &dtypestr) {
 template <typename coordinate_type,
           template <typename C> class TemplatedAllocator>
 void instantiate_gpu_func(py::module &m, const std::string &dtypestr) {
+
   m.def((std::string("ConvolutionForwardGPU") + dtypestr).c_str(),
         &minkowski::ConvolutionForwardGPU<coordinate_type, TemplatedAllocator>,
         py::call_guard<py::gil_scoped_release>());

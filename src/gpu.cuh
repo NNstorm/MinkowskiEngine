@@ -146,14 +146,17 @@ namespace minkowski {
     }                                                                          \
   }
 
+#undef THRUST_CHECK
 #define THRUST_CHECK(condition)                                                \
   try {                                                                        \
+    std::cout << "thrust running: " << (#condition) << std::endl; \
     condition;                                                                 \
+    std::cout << "thrust finished: " << (#condition) << std::endl; \
   } catch (thrust::system_error e) {                                           \
     throw std::runtime_error(Formatter()                                       \
                              << "Thrust error: " << e.what() << " at "         \
                              << __FILE__ << ":" << __LINE__);                  \
-  }
+  } catch (...) { std::cerr << "kaka" << std::endl; }
 
 // CUDA: library error reporting.
 const char *cublasGetErrorString(cublasStatus_t error);

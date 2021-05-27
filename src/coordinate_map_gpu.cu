@@ -427,10 +427,10 @@ CoordinateMapGPU<coordinate_type, TemplatedAllocator>::stride(
 
   detail::stride_copy<coordinate_type, size_type, index_type>
       <<<num_blocks, CUDA_NUM_THREADS, m_coordinate_size * sizeof(size_type)>>>(
-          const_coordinate_data(),         //
-          m_valid_row_index.cbegin(),      //
+          const_coordinate_data(),           //
+          m_valid_row_index.cbegin(),        //
           out_device_tensor_stride.cbegin(), //
-          stride_map.coordinate_data(),    //
+          stride_map.coordinate_data(),      //
           num_threads, m_coordinate_size);
 
   LOG_DEBUG("Stride copy done.");
@@ -973,7 +973,7 @@ CoordinateFieldMapGPU<coordinate_field_type, coordinate_int_type,
           m_coordinate_size);
 
   CUDA_CHECK(cudaStreamSynchronize(0));
-  kernel_map.decompose();
+  THRUST_CHECK(kernel_map.decompose());
   LOG_DEBUG("origin map decomposed");
 
   return kernel_map;
@@ -1543,6 +1543,10 @@ direct_kernel_map(map_type const __restrict__ in_map,                       //
 
 } // namespace detail
 
+void testnoexcept() noexcept {
+  throw thrust::system_error(thrust::error_code());
+}
+
 template <typename coordinate_type,
           template <typename T> class TemplatedAllocator>
 CoordinateMapGPU<coordinate_type, TemplatedAllocator>::kernel_map_type
@@ -1660,7 +1664,7 @@ CoordinateMapGPU<coordinate_type, TemplatedAllocator>::kernel_map(
     CUDA_CHECK(cudaStreamSynchronize(0));
     LOG_DEBUG("Preallocated kernel map done");
 
-    kernel_map.decompose();
+    THRUST_CHECK(kernel_map.decompose());
     base_type::m_byte_allocator.deallocate(
         reinterpret_cast<char *>(d_p_count_per_thread),
         num_threads * sizeof(index_type));
@@ -1730,7 +1734,8 @@ CoordinateMapGPU<coordinate_type, TemplatedAllocator>::kernel_map(
     CUDA_CHECK(cudaMemcpy(kernel_map.out_maps.data(), d_p_valid_out_index,
                           valid_size * sizeof(index_type),
                           cudaMemcpyDeviceToDevice));
-    kernel_map.decompose();
+    testnoexcept();
+    THRUST_CHECK(kernel_map.decompose());
 
     base_type::m_byte_allocator.deallocate(
         reinterpret_cast<char *>(d_p_valid_in_index),
@@ -1961,7 +1966,7 @@ CoordinateMapGPU<coordinate_type, TemplatedAllocator>::origin_map(
           m_coordinate_size);
 
   CUDA_CHECK(cudaStreamSynchronize(0));
-  kernel_map.decompose();
+  THRUST_CHECK(kernel_map.decompose());
   LOG_DEBUG("origin map decomposed");
 
   return kernel_map;

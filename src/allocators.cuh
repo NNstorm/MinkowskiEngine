@@ -48,7 +48,7 @@ template <class T> struct default_allocator {
   default_allocator() = default;
 
   template <class U>
-  constexpr default_allocator(const default_allocator<U> &) noexcept {}
+  constexpr default_allocator(const default_allocator<U> &) {}
 
   T *allocate(std::size_t n, cudaStream_t stream = 0) const {
     T *d_tmp;
@@ -74,8 +74,7 @@ template <class T> struct c10_allocator {
 
   c10_allocator() = default;
 
-  template <class U>
-  constexpr c10_allocator(const c10_allocator<U> &) noexcept {}
+  template <class U> constexpr c10_allocator(const c10_allocator<U> &) {}
 
   T *allocate(std::size_t n, cudaStream_t stream = 0) const {
     T *tmp;

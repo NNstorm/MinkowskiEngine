@@ -46,7 +46,7 @@ namespace detail {
 
 /*
 template <typename Itype> struct byte_hash_vec {
-  std::size_t operator()(std::vector<Itype> const &vec) const noexcept {
+  std::size_t operator()(std::vector<Itype> const &vec) const  {
     return robin_hood::hash_bytes(vec.data(), sizeof(Itype) * vec.size());
   }
 };
@@ -56,9 +56,9 @@ template <typename Itype> struct byte_hash_vec {
  * @note assume that `src`, `dst`, and `stride` are initialized correctly.
  */
 template <typename Itype>
-inline void
-stride_coordinate(const coordinate<Itype> &src, std::vector<Itype> &dst,
-                  const default_types::stride_type &stride) noexcept {
+inline void stride_coordinate(const coordinate<Itype> &src,
+                              std::vector<Itype> &dst,
+                              const default_types::stride_type &stride) {
   dst[0] = src[0];
   for (default_types::index_type i = 0; i < stride.size(); ++i) {
     dst[i + 1] = std::floor((float)src[i + 1] / stride[i]) * stride[i];
@@ -68,7 +68,7 @@ stride_coordinate(const coordinate<Itype> &src, std::vector<Itype> &dst,
 template <typename Itype, typename stride_type>
 inline void stride_coordinate(const coordinate<Itype> &src,
                               std::vector<Itype> &dst,
-                              const stride_type stride) noexcept {
+                              const stride_type stride) {
   dst[0] = src[0];
   for (default_types::index_type i = 0; i < dst.size() - 1; ++i) {
     dst[i + 1] = std::floor((float)src[i + 1] / stride[i]) * stride[i];
@@ -169,15 +169,11 @@ public:
 
   std::string to_string() const;
 
-  stride_type const &get_tensor_stride() const noexcept {
-    return m_tensor_stride;
-  }
+  stride_type const &get_tensor_stride() const { return m_tensor_stride; }
 
-  inline size_type capacity() const noexcept { return m_capacity; }
+  inline size_type capacity() const { return m_capacity; }
 
-  inline size_type coordinate_size() const noexcept {
-    return m_coordinate_size;
-  }
+  inline size_type coordinate_size() const { return m_coordinate_size; }
 
 protected:
   // clang-format off

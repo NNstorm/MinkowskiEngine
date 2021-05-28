@@ -78,12 +78,10 @@ public:
   }
 
   /// Move constructor, initializes by stealing the contents of `other`.
-  small_vector(small_vector &&other) noexcept { steal_data_from(other); }
+  small_vector(small_vector &&other) { steal_data_from(other); }
 
   // Destructor, no need for documentation
-  ~small_vector() {
-    free_array();
-  }
+  ~small_vector() { free_array(); }
 
   /// Copy assignment, copies over data from `other`.
   small_vector &operator=(small_vector const &other) {
@@ -95,7 +93,7 @@ public:
   }
 
   /// Move assignment, steals the contents of `other`.
-  small_vector &operator=(small_vector &&other) noexcept {
+  small_vector &operator=(small_vector &&other) {
     // Self-assignment is not valid for move assignment, not testing for it
     // here.
     free_array();
@@ -279,21 +277,21 @@ private:
   constexpr static size_type static_size_ = N;
   size_type size_ = 0;
   T stat_[static_size_]; // static data
-  T *data_ = stat_; // dynamic data
+  T *data_ = stat_;      // dynamic data
   // The alternate implementation, where data_ and stat_ are in a union
   // to reduce the amount of memory used, requires a test for every data
   // access. Data access is most frequent, it's worth using a little bit
   // more memory to avoid that test.
 
-  bool is_dynamic() noexcept { return data_ != stat_; }
+  bool is_dynamic() { return data_ != stat_; }
 
-  void free_array() noexcept {
+  void free_array() {
     if (is_dynamic()) {
       std::free(data_);
     }
   }
 
-  void steal_data_from(small_vector &other) noexcept {
+  void steal_data_from(small_vector &other) {
     if (other.is_dynamic()) {
       size_ = other.size_;
       data_ = other.data_;       // move pointer

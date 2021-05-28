@@ -57,7 +57,7 @@ public:
   MINK_CUDA_HOST_DEVICE inline void data(coordinate_type *ptr) { m_ptr = ptr; }
 
 private:
-  coordinate_type const *m_ptr {nullptr};
+  coordinate_type const *m_ptr{nullptr};
 };
 
 template <typename T> struct coordinate_print_functor {
@@ -107,80 +107,74 @@ public:
 
   // reference operator*();
   // pointer   operator->();
-  MINK_CUDA_HOST_DEVICE inline reference operator*() noexcept {
+  MINK_CUDA_HOST_DEVICE inline reference operator*() {
     m_coordinate = value_type{m_ptr + m_coordinate_size * m_steps};
     return m_coordinate;
   }
-  MINK_CUDA_HOST_DEVICE inline pointer operator->() noexcept {
+  MINK_CUDA_HOST_DEVICE inline pointer operator->() {
     m_coordinate = value_type{m_ptr + m_coordinate_size * m_steps};
     return &m_coordinate;
   }
 
   // this_type& operator++();
   // this_type  operator++(int);
-  MINK_CUDA_HOST_DEVICE inline self_type &operator++() noexcept {
+  MINK_CUDA_HOST_DEVICE inline self_type &operator++() {
     ++m_steps;
     return *this;
   }
-  MINK_CUDA_HOST_DEVICE inline self_type operator++(int) noexcept {
+  MINK_CUDA_HOST_DEVICE inline self_type operator++(int) {
     return self_type{m_ptr, m_coordinate_size, m_steps + 1};
   }
 
   // this_type& operator--();
   // this_type  operator--(int);
-  MINK_CUDA_HOST_DEVICE inline self_type &operator--() noexcept {
+  MINK_CUDA_HOST_DEVICE inline self_type &operator--() {
     --m_steps;
     return *this;
   }
-  MINK_CUDA_HOST_DEVICE inline self_type operator--(int) noexcept {
+  MINK_CUDA_HOST_DEVICE inline self_type operator--(int) {
     return self_type{m_ptr, m_coordinate_size, m_steps - 1};
   }
 
   // this_type &operator+=(difference_type n);
   // this_type &operator-=(difference_type n);
-  MINK_CUDA_HOST_DEVICE inline self_type &
-  operator+=(difference_type n) noexcept {
+  MINK_CUDA_HOST_DEVICE inline self_type &operator+=(difference_type n) {
     m_steps += n;
     return *this;
   }
-  MINK_CUDA_HOST_DEVICE inline self_type &
-  operator-=(difference_type n) noexcept {
+  MINK_CUDA_HOST_DEVICE inline self_type &operator-=(difference_type n) {
     m_steps -= n;
     return *this;
   }
 
   // this_type operator+(difference_type n) const;
   // this_type operator-(difference_type n) const;
-  MINK_CUDA_HOST_DEVICE inline self_type
-  operator+(difference_type n) const noexcept {
+  MINK_CUDA_HOST_DEVICE inline self_type operator+(difference_type n) const {
     return self_type{m_ptr, m_coordinate_size, m_steps + n};
   }
-  MINK_CUDA_HOST_DEVICE inline self_type
-  operator-(difference_type n) const noexcept {
+  MINK_CUDA_HOST_DEVICE inline self_type operator-(difference_type n) const {
     return self_type{m_ptr, m_coordinate_size, m_steps - n};
   }
 
-  MINK_CUDA_HOST_DEVICE inline size_type coordinate_size() const noexcept {
+  MINK_CUDA_HOST_DEVICE inline size_type coordinate_size() const {
     return m_coordinate_size;
   }
 
   MINK_CUDA_HOST_DEVICE inline difference_type
-  operator-(self_type const &other) const noexcept {
+  operator-(self_type const &other) const {
     return m_steps - other.m_steps;
   }
 
-  MINK_CUDA_HOST_DEVICE inline bool
-  operator==(self_type const &other) const noexcept {
+  MINK_CUDA_HOST_DEVICE inline bool operator==(self_type const &other) const {
     return current_position() == other.current_position();
   }
 
-  MINK_CUDA_HOST_DEVICE inline bool
-  operator!=(self_type const &other) const noexcept {
+  MINK_CUDA_HOST_DEVICE inline bool operator!=(self_type const &other) const {
     return current_position() != other.current_position();
   }
 
 private:
-  inline coordinate_type const *current_position() const noexcept {
+  inline coordinate_type const *current_position() const {
     return m_ptr + m_coordinate_size * m_steps;
   }
 

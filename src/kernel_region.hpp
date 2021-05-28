@@ -81,12 +81,8 @@ public:
 
     // reference operator*();
     // pointer   operator->();
-    MINK_CUDA_HOST_DEVICE inline reference operator*() noexcept {
-      return m_coordinate;
-    }
-    MINK_CUDA_HOST_DEVICE inline pointer operator->() noexcept {
-      return &m_coordinate;
-    }
+    MINK_CUDA_HOST_DEVICE inline reference operator*() { return m_coordinate; }
+    MINK_CUDA_HOST_DEVICE inline pointer operator->() { return &m_coordinate; }
 
     /*
      * Cannot use the coordinates for hash-map insertion with * or ->.
@@ -94,7 +90,7 @@ public:
 
     // this_type& operator++();
     // this_type  operator++(int);
-    MINK_CUDA_HOST_DEVICE inline self_type operator++() noexcept {
+    MINK_CUDA_HOST_DEVICE inline self_type operator++() {
       // Iterate only from 1 to m_coordinate_size, 0th element is reserved for
       // batch index.
       for (index_type m_axis = 0;;) {
@@ -112,11 +108,10 @@ public:
       }
       return *this;
     }
-    // MINK_CUDA_HOST_DEVICE inline self_type operator++(int) noexcept;
+    // MINK_CUDA_HOST_DEVICE inline self_type operator++(int) ;
     // TDOO: % based iteration
 
-    MINK_CUDA_HOST_DEVICE inline bool
-    operator!=(self_type const &other) const noexcept {
+    MINK_CUDA_HOST_DEVICE inline bool operator!=(self_type const &other) const {
       return !done;
     }
 
@@ -203,9 +198,9 @@ public:
       auto const curr_kernel_index = kernel_index % curr_kernel_size;
 
       if (m_kernel_size[i] % 2 == 0) {
-        dst_coordinate[i + 1] =
-            src_coordinate[i + 1] +
-            m_dilation[i] * m_tensor_stride[i] * curr_kernel_index;
+        dst_coordinate[i + 1] = src_coordinate[i + 1] + m_dilation[i] *
+                                                            m_tensor_stride[i] *
+                                                            curr_kernel_index;
       } else {
         dst_coordinate[i + 1] =
             src_coordinate[i + 1] +
@@ -415,11 +410,11 @@ public:
 
   using base_type::coordinate_at;
   using base_type::coordinate_size;
+  using base_type::is_transpose;
   using base_type::num_offset;
   using base_type::offset;
   using base_type::region_type;
   using base_type::volume;
-  using base_type::is_transpose;
 
   using base_type::dilation;
   using base_type::kernel_size;

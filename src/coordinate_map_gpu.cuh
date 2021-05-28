@@ -299,7 +299,7 @@ public:
   kernel_map_type origin_map(coordinate_map_type const &origin_coordinate_map,
                              uint32_t thread_dim = CUDA_NUM_THREADS) const;
 
-  inline size_type size() const noexcept { return m_size; }
+  inline size_type size() const { return m_size; }
   std::string to_string() const {
     Formatter o;
     o << "CoordinateFieldMapGPU:" << size() << "x" << m_coordinate_size;

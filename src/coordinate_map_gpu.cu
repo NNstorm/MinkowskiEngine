@@ -1543,9 +1543,7 @@ direct_kernel_map(map_type const __restrict__ in_map,                       //
 
 } // namespace detail
 
-void testnoexcept() noexcept {
-  throw thrust::system_error(thrust::error_code());
-}
+void test_no_except() { throw thrust::system_error(thrust::error_code()); }
 
 template <typename coordinate_type,
           template <typename T> class TemplatedAllocator>
@@ -1734,7 +1732,7 @@ CoordinateMapGPU<coordinate_type, TemplatedAllocator>::kernel_map(
     CUDA_CHECK(cudaMemcpy(kernel_map.out_maps.data(), d_p_valid_out_index,
                           valid_size * sizeof(index_type),
                           cudaMemcpyDeviceToDevice));
-    testnoexcept();
+    // test();
     THRUST_CHECK(kernel_map.decompose());
 
     base_type::m_byte_allocator.deallocate(

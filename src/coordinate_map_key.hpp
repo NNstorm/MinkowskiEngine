@@ -104,7 +104,7 @@ public:
 
   hash_key_type hash() const { return coordinate_map_key_hasher{}(m_key); }
 
-  bool is_key_set() const noexcept { return m_key_set; }
+  bool is_key_set() const { return m_key_set; }
 
   /*
   void stride(stride_type const &strides) {

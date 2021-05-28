@@ -279,17 +279,17 @@ public:
     return m_coordinate_maps.cend();
   }
 
-  inline bool exists(coordinate_map_key_type const &key) const noexcept {
+  inline bool exists(coordinate_map_key_type const &key) const {
     return m_coordinate_maps.find(key) != m_coordinate_maps.end();
   }
 
-  inline bool exists_field(coordinate_map_key_type const &key) const noexcept {
+  inline bool exists_field(coordinate_map_key_type const &key) const {
     return m_field_coordinates.find(key) != m_field_coordinates.end();
   }
 
-  inline bool exists_field_to_sparse(
-      coordinate_map_key_type const &field_key,
-      coordinate_map_key_type const &sparse_key) const noexcept {
+  inline bool
+  exists_field_to_sparse(coordinate_map_key_type const &field_key,
+                         coordinate_map_key_type const &sparse_key) const {
     auto key = std::pair<coordinate_map_key_type, coordinate_map_key_type>{
         field_key, sparse_key};
     return m_field_to_sparse_maps.find(key) != m_field_to_sparse_maps.end();

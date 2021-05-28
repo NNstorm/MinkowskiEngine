@@ -872,7 +872,7 @@ public:
     return in_out_maps;
   }
 
-  inline size_type size() const noexcept { return m_map.size(); }
+  inline size_type size() const { return m_map.size(); }
   std::string to_string() const {
     Formatter o;
     o << "CoordinateMapCPU:" << size() << "x" << m_coordinate_size;
@@ -1133,7 +1133,7 @@ public:
     return cpu_kernel_map(in_out, batch_indices);
   }
 
-  inline size_type size() const noexcept { return m_size; }
+  inline size_type size() const { return m_size; }
   std::string to_string() const {
     Formatter o;
     o << "CoordinateFieldMapCPU:" << size() << "x" << m_coordinate_size;
